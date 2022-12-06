@@ -11,8 +11,7 @@ public class HttpClientMain {
 
     public static void main(String[] args) throws Exception{
         HttpResponse httpResponse = HttpRequest
-                .createHttpRequest()
-                .setUrl("http://leesungdang1945.com/")
+                .createHttpRequest("http://leesungdang1945.com/")
                 .setHttpMethod(HttpMethod.GET)
                 .addHeader("User-Agent", "")
                 .execute();
@@ -46,22 +45,7 @@ class HttpRequest {
 
 
 
-    private HttpRequest() {
-        headersMap = new HashMap<>();
-        headersMap.put("Accept", "application/json, text/plain, */*");
-        headersMap.put("User-Agent", "");
-
-
-        this.httpMethod = HttpMethod.GET;
-    }
-
-
-    public static HttpRequest createHttpRequest() {
-        return new HttpRequest();
-    }
-
-
-    public HttpRequest setUrl(String url) {
+    private HttpRequest(String url) {
         try {
             this.url = new URL(url);
         } catch (MalformedURLException e) {
@@ -72,8 +56,19 @@ class HttpRequest {
         this.protocol = this.url.getProtocol();
         this.host = this.url.getHost();
 
-        return this;
+        headersMap = new HashMap<>();
+        headersMap.put("Accept", "application/json, text/plain, */*");
+        headersMap.put("User-Agent", "");
+
+
+        this.httpMethod = HttpMethod.GET;
     }
+
+
+    public static HttpRequest createHttpRequest(String url) {
+        return new HttpRequest(url);
+    }
+
 
     public HttpRequest setHttpMethod(HttpMethod httpMethod) {
         this.httpMethod = httpMethod;

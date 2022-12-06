@@ -38,8 +38,6 @@ class HttpRequest {
     private String protocol;
     private HttpMethod httpMethod;
 
-    private Byte[] postDataBytes;
-
     private Map<String, String> headersMap;
     private Proxy proxy;
 
@@ -102,14 +100,6 @@ class HttpRequest {
     }
 
 
-    public HttpRequest setBody(Byte[] postDataBytes) {
-        this.postDataBytes = postDataBytes;
-        headersMap.put("Content-length", String.valueOf(this.postDataBytes.length));
-
-        return this;
-    }
-
-
     public HttpResponse execute() throws Exception {
         if (this.url == null) {
             throw new Exception("url is not null");
@@ -137,6 +127,7 @@ class HttpRequest {
 
             out.print(header);
             out.println();
+
 
             String line = null;
 

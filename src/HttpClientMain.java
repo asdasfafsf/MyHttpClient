@@ -18,6 +18,7 @@ public class HttpClientMain {
                 .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
                 .addHeader("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
                 .addHeader("Content-Type", "application/x-www-form-urlencoded")
+                .addHeader("Referer", "http://support.infotech.co.kr/support/login")
                 .execute();
 
 
@@ -47,7 +48,7 @@ class HttpRequest {
     private HttpMethod httpMethod;
     private Map<String, String> headersMap;
     private Proxy proxy;
-    private boolean isRedirect = false;
+    private boolean followRedirect = true;
 
     private String body = "";
 
@@ -63,8 +64,12 @@ class HttpRequest {
         this.host = this.url.getHost();
 
         headersMap = new HashMap<>();
+        headersMap.put("Connection", "keep-alive");
+        headersMap.put("Content-length", "");
         headersMap.put("Accept", "application/json, text/plain, */*");
         headersMap.put("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36");
+        headersMap.put("Origin", this.protocol + "://" + this.host);
+
 
 
         this.httpMethod = HttpMethod.GET;
@@ -138,7 +143,8 @@ class HttpRequest {
             String header = this.headersMap.entrySet()
                     .stream()
                     .map(consumer -> { return consumer.getKey() + ": " + consumer.getValue(); })
-                    .collect(Collectors.joining("\n"));
+                    .sorted()
+                    .collect(Collectors.joining("\r\n"));
 
 
             if (!"".equals(this.body)) {
@@ -152,13 +158,13 @@ class HttpRequest {
 
             StringBuilder requestSb = new StringBuilder();
 
-            requestSb.append(this.httpMethod + " " + this.url.toString() + " " + this.protocol.toUpperCase() + "/1.1");
-            requestSb.append("\n");
+            requestSb.append(this.httpMethod + " " + this.url.toString() + " HTTP/1.1");
+            requestSb.append("\r\n");
             requestSb.append("Host: " + this.host);
-            requestSb.append("\n");
+            requestSb.append("\r\n");
             requestSb.append(header);
-            requestSb.append("\n");
-            requestSb.append("\n");
+            requestSb.append("\r\n");
+            requestSb.append("\r\n");
 
             if (this.httpMethod != HttpMethod.GET) {
                 requestSb.append(this.body);
@@ -203,10 +209,12 @@ class HttpResponse {
     final String response;
     final int statusCode;
     public HttpResponse(String response) {
+
+        System.out.println("시작");
         this.response = response;
         String[] responses = response.split("\n");
 
-        if (!response.contains("HTTP/1.1")) {
+        if (!responses[0].contains("HTTP/1.1")) {
             throw new IllegalArgumentException("response is not http packet");
         }
 

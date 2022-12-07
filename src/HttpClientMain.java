@@ -13,8 +13,8 @@ public class HttpClientMain {
     public static void main(String[] args) throws Exception{
         HttpResponse httpResponse = HttpRequest
                 .createHttpRequest("http://support.infotech.co.kr/support/loginP")
-                .setHttpMethod(HttpMethod.POST)
-                .setBody("usrId=asdasd&usrPw=asdas")
+                .setHttpMethod(HttpMethod.GET)
+//                .setBody("usrId=asdasd&usrPw=asdas")
                 .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
                 .addHeader("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
                 .addHeader("Content-Type", "application/x-www-form-urlencoded")
@@ -22,8 +22,8 @@ public class HttpClientMain {
                 .execute();
 
 
-        System.out.println(httpResponse.statusCode);
-        System.out.println(httpResponse.response);
+//        System.out.println(httpResponse.statusCode);
+//        System.out.println(httpResponse.response);
 
     }
 }
@@ -88,6 +88,13 @@ class HttpRequest {
     }
 
 
+    public HttpRequest setFollowRedirect(boolean followRedirect) {
+        this.followRedirect = followRedirect;
+
+        return this;
+    }
+
+
     public HttpRequest addHeader(String key, String value) {
         if (this.headersMap.get(key) != null) {
             this.headersMap.remove(key);
@@ -134,8 +141,6 @@ class HttpRequest {
             SocketAddress socketAddress = new InetSocketAddress(this.host, this.port);
             socket.connect(socketAddress, 5000);
 
-
-
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintStream(socket.getOutputStream());
 
@@ -169,27 +174,47 @@ class HttpRequest {
                 requestSb.append(this.body);
             }
 
-            System.out.println(requestSb.toString());
             out.print(requestSb.toString());
             out.flush();
 
+            String line = "";
 
-            String line = null;
-
-            int i = 0;
-
-            while ((line = in.readLine()) != null) {
+            while ( ((line = in.readLine()) != null)) {
                 responseSb.append(line);
-                responseSb.append("\n");
-                System.out.println("오고있니??" + ++i);
+                responseSb.append("\r\n");
+
+                if (line.trim().equals("")) {
+                    break;
+                }
             }
 
-            System.out.println("도데체 어디서 ㄴ린거?" + ++i);
+            String responseHeader = responseSb.toString();
+            String[] responseHeaders = responseHeader.split("\r\n");
+
+
+            int statusCode = Integer.parseInt(responseHeaders[0].split(" ")[1]);
+
+            if (statusCode == 302 && this.followRedirect) {
+
+            }
+
+            String contentLength = (Arrays.stream(responseHeaders)
+                    .filter(element -> { return element.toLowerCase().startsWith("content-length"); } )
+                    .findFirst()
+                    .orElse("Content-Length: " + Integer.MAX_VALUE));
+
+            int responseBodyLength = Integer.parseInt(contentLength.replaceAll("[^\\d]", ""));
+
+            StringBuilder responseBodySb = new StringBuilder();
+
+            while(responseBodySb.length() < responseBodyLength && (line = in.readLine()) != null) {
+                responseBodySb.append(line);
+                responseBodySb.append("\n");
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            System.out.println("끝남22");
             if (out != null) {
                 out.close();
             }
@@ -203,7 +228,6 @@ class HttpRequest {
             }
         }
 
-        System.out.println("끝남");
 
         HttpResponse httpResponse = new HttpResponse(responseSb.toString());
         return httpResponse;

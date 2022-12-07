@@ -13,8 +13,8 @@ public class HttpClientMain {
     public static void main(String[] args) throws Exception{
         HttpResponse httpResponse = HttpRequest
                 .createHttpRequest("http://support.infotech.co.kr/support/loginP")
-                .setHttpMethod(HttpMethod.GET)
-//                .setBody("usrId=asdasd&usrPw=asdas")
+                .setHttpMethod(HttpMethod.POST)
+                .setBody("usrId=asdasd&usrPw=asdas")
                 .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
                 .addHeader("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
                 .addHeader("Content-Type", "application/x-www-form-urlencoded")
@@ -22,8 +22,8 @@ public class HttpClientMain {
                 .execute();
 
 
-//        System.out.println(httpResponse.statusCode);
-//        System.out.println(httpResponse.response);
+        System.out.println(httpResponse.statusCode);
+        System.out.println(httpResponse.response);
 
     }
 }
@@ -69,8 +69,6 @@ class HttpRequest {
         headersMap.put("Accept", "application/json, text/plain, */*");
         headersMap.put("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36");
         headersMap.put("Origin", this.protocol + "://" + this.host);
-
-
 
         this.httpMethod = HttpMethod.GET;
     }
@@ -134,7 +132,10 @@ class HttpRequest {
         BufferedReader in = null;
         PrintStream out = null;
 
-        StringBuilder responseSb = new StringBuilder();
+        StringBuilder responseHeaderSB = new StringBuilder();
+        StringBuilder responseBodySB = new StringBuilder();
+        int statusCode = 0;
+
 
         try {
             socket = new Socket();
@@ -144,21 +145,7 @@ class HttpRequest {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintStream(socket.getOutputStream());
 
-            String header = this.headersMap.entrySet()
-                    .stream()
-                    .map(consumer -> { return consumer.getKey() + ": " + consumer.getValue(); })
-                    .sorted()
-                    .collect(Collectors.joining("\r\n"));
-
-
-            if (!"".equals(this.body)) {
-                String contentType = "";
-                contentType = headersMap.get("Content-type");
-
-                if (contentType == null) {
-                    contentType = "";
-                }
-            }
+            String requestHeader = this.getHeaderString();
 
             StringBuilder requestSb = new StringBuilder();
 
@@ -166,7 +153,7 @@ class HttpRequest {
             requestSb.append("\r\n");
             requestSb.append("Host: " + this.host);
             requestSb.append("\r\n");
-            requestSb.append(header);
+            requestSb.append(requestHeader);
             requestSb.append("\r\n");
             requestSb.append("\r\n");
 
@@ -181,19 +168,19 @@ class HttpRequest {
 
 
             while ( ((line = in.readLine()) != null)) {
-                responseSb.append(line);
-                responseSb.append("\r\n");
+                responseHeaderSB.append(line);
+                responseHeaderSB.append("\r\n");
 
                 if (line.trim().equals("")) {
                     break;
                 }
             }
 
-            String responseHeader = responseSb.toString();
+            String responseHeader = responseHeaderSB.toString();
             String[] responseHeaders = responseHeader.split("\r\n");
 
 
-            int statusCode = Integer.parseInt(responseHeaders[0].split(" ")[1]);
+            statusCode = Integer.parseInt(responseHeaders[0].split(" ")[1]);
 
             if (statusCode == 302 && this.followRedirect) {
 
@@ -230,8 +217,18 @@ class HttpRequest {
         }
 
 
-        HttpResponse httpResponse = new HttpResponse(responseSb.toString());
+        HttpResponse httpResponse =  HttpResponse.createHttpResponse(statusCode, responseHeaderSB.toString(), responseBodySB.toString());
+
         return httpResponse;
+    }
+
+
+    private String getHeaderString() {
+        return this.headersMap.entrySet()
+                .stream()
+                .map(consumer -> { return consumer.getKey() + ": " + consumer.getValue(); })
+                .sorted()
+                .collect(Collectors.joining("\r\n"));
     }
 }
 
@@ -239,32 +236,30 @@ class HttpRequest {
 
 class HttpResponse {
     private Map<String, String> headersMap;
-    final String response;
+    final String responseHeader;
+    final String responseBody;
     final int statusCode;
-    public HttpResponse(String response) {
-        this.response = response;
-        String[] responses = response.split("\n");
 
-        if (!responses[0].contains("HTTP/1.1")) {
-            throw new IllegalArgumentException("response is not http packet");
-        }
 
-        int statusCode = Integer.parseInt(responses[0]
-                .split("HTTP/1.1")[1]
-                .replaceAll("[^\\d]", "")
-                .trim());
-        this.statusCode = statusCode;
-
-        for (int i = 1; i < responses.length; i++) {
-            String res = responses[i];
-        }
+    static HttpResponse createHttpResponse(int statusCode, String responseHeader, String responseBody) {
+        return new HttpResponse(statusCode, responseHeader, responseBody);
     }
 
+    private HttpResponse(int statusCode, String responseHeader, String responseBody) {
+        this.responseHeader = responseHeader;
+        this.responseBody = responseBody;
+        this.statusCode = statusCode;
 
 
+        if (!responseHeader.contains("HTTP")) {
+            throw new IllegalArgumentException("responseHeader is not http packet");
+        }
 
-    public String getHeader(String key) {
-        return headersMap.get(key);
+
+    }
+
+    private void setCookie() {
+
     }
 
 }

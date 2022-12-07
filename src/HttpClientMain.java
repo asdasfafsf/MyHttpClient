@@ -123,22 +123,21 @@ class HttpRequest {
 
 
     public HttpResponse execute() throws Exception {
-        if (this.url == null) {
-            throw new Exception("url is not null");
-        }
-
         Socket socket = null;
         BufferedReader in = null;
         PrintStream out = null;
 
-
         StringBuilder responseSb = new StringBuilder();
 
         try {
-            socket = new Socket(this.host, this.port);
+            socket = new Socket();
+            SocketAddress socketAddress = new InetSocketAddress(this.host, this.port);
+            socket.connect(socketAddress, 5000);
+
+
+
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintStream(socket.getOutputStream());
-
 
             String header = this.headersMap.entrySet()
                     .stream()
@@ -173,18 +172,22 @@ class HttpRequest {
             System.out.println(requestSb.toString());
             out.print(requestSb.toString());
 
-
-
             String line = null;
+
+            int i = 0;
 
             while ((line = in.readLine()) != null) {
                 responseSb.append(line);
                 responseSb.append("\n");
+                System.out.println("오고있니??" + ++i);
             }
+
+            System.out.println("도데체 어디서 ㄴ린거?" + ++i);
 
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
+            System.out.println("끝남22");
             if (out != null) {
                 out.close();
             }
@@ -198,7 +201,10 @@ class HttpRequest {
             }
         }
 
-        return new HttpResponse(responseSb.toString());
+        System.out.println("끝남");
+
+        HttpResponse httpResponse = new HttpResponse(responseSb.toString());
+        return httpResponse;
     }
 }
 
@@ -209,8 +215,6 @@ class HttpResponse {
     final String response;
     final int statusCode;
     public HttpResponse(String response) {
-
-        System.out.println("시작");
         this.response = response;
         String[] responses = response.split("\n");
 

@@ -176,8 +176,11 @@ class HttpRequest {
 
             out.print(requestSb.toString());
             out.flush();
+<<<<<<< HEAD
 
             String line = "";
+=======
+>>>>>>> 11c0860 (test)
 
             while ( ((line = in.readLine()) != null)) {
                 responseSb.append(line);

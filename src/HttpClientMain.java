@@ -171,6 +171,8 @@ class HttpRequest {
 
             System.out.println(requestSb.toString());
             out.print(requestSb.toString());
+            out.flush();
+
 
             String line = null;
 

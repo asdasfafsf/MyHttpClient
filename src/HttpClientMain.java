@@ -190,9 +190,6 @@ class HttpRequest {
             String responseHeader = responseHeaderSB.toString();
             String[] responseHeaders = responseHeader.split("\r\n");
 
-            statusCode = Integer.parseInt(responseHeaders[0].split(" ")[1]);
-
-
             String contentLength = (Arrays.stream(responseHeaders)
                     .filter(element -> { return element.toLowerCase().startsWith("content-length"); } )
                     .findFirst()
@@ -206,6 +203,7 @@ class HttpRequest {
                 responseBodySB.append("\r\n");
             }
 
+            statusCode = Integer.parseInt(responseHeaders[0].split(" ")[1]);
 
             if (statusCode == 302 && this.followRedirect) {
 

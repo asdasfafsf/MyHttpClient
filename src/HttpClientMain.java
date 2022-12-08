@@ -1,3 +1,6 @@
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
@@ -12,18 +15,18 @@ public class HttpClientMain {
 
     public static void main(String[] args) throws Exception{
         HttpResponse httpResponse = HttpRequest
-                .createHttpRequest("http://support.infotech.co.kr/support/loginP")
-                .setHttpMethod(HttpMethod.POST)
-                .setBody("usrId=asdasd&usrPw=asdas")
+                .createHttpRequest("https://docs.oracle.com/javase/7/docs/api/javax/net/ssl/SSLSocket.html")
+                .setHttpMethod(HttpMethod.GET)
+//                .setBody("usrId=asdasd&usrPw=asdas")
                 .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
                 .addHeader("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
                 .addHeader("Content-Type", "application/x-www-form-urlencoded")
-                .addHeader("Referer", "http://support.infotech.co.kr/support/login")
                 .execute();
 
 
         System.out.println(httpResponse.statusCode);
-        System.out.println(httpResponse.response);
+        System.out.println(httpResponse.responseHeader);
+        System.out.println(httpResponse.responseBody);
 
     }
 }
@@ -65,8 +68,7 @@ class HttpRequest {
 
         headersMap = new HashMap<>();
         headersMap.put("Connection", "keep-alive");
-        headersMap.put("Content-length", "");
-        headersMap.put("Accept", "application/json, text/plain, */*");
+        headersMap.put("Accept", "*/*");
         headersMap.put("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36");
         headersMap.put("Origin", this.protocol + "://" + this.host);
 
@@ -129,6 +131,7 @@ class HttpRequest {
 
     public HttpResponse execute() throws Exception {
         Socket socket = null;
+        SSLSocket sslSocket = null;
         BufferedReader in = null;
         PrintStream out = null;
 
@@ -138,16 +141,27 @@ class HttpRequest {
 
 
         try {
-            socket = new Socket();
-            SocketAddress socketAddress = new InetSocketAddress(this.host, this.port);
-            socket.connect(socketAddress, 5000);
 
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            out = new PrintStream(socket.getOutputStream());
 
-            String requestHeader = this.getHeaderString();
+            if ("HTTPS".equalsIgnoreCase(this.protocol)) {
+                SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+                sslSocket = (SSLSocket) sslSocketFactory.createSocket(this.host, this.port);
+//                sslSocket.startHandshake();
+                out = new PrintStream(sslSocket.getOutputStream());
+                in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
+            } else {
+                SocketAddress socketAddress = new InetSocketAddress(this.host, this.port);
+                socket.connect(socketAddress, 5000);
+                out = new PrintStream(socket.getOutputStream());
+                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            }
+
+
+            String requestHeader = this.getRequestHeader();
 
             StringBuilder requestSb = new StringBuilder();
+
+            System.out.println(this.url.toString() + "나나나나나나나나");
 
             requestSb.append(this.httpMethod + " " + this.url.toString() + " HTTP/1.1");
             requestSb.append("\r\n");
@@ -160,17 +174,14 @@ class HttpRequest {
             if (this.httpMethod != HttpMethod.GET) {
                 requestSb.append(this.body);
             }
-
             out.print(requestSb.toString());
             out.flush();
 
             String line = "";
 
-
             while ( ((line = in.readLine()) != null)) {
                 responseHeaderSB.append(line);
                 responseHeaderSB.append("\r\n");
-
                 if (line.trim().equals("")) {
                     break;
                 }
@@ -179,12 +190,8 @@ class HttpRequest {
             String responseHeader = responseHeaderSB.toString();
             String[] responseHeaders = responseHeader.split("\r\n");
 
-
             statusCode = Integer.parseInt(responseHeaders[0].split(" ")[1]);
 
-            if (statusCode == 302 && this.followRedirect) {
-
-            }
 
             String contentLength = (Arrays.stream(responseHeaders)
                     .filter(element -> { return element.toLowerCase().startsWith("content-length"); } )
@@ -193,13 +200,16 @@ class HttpRequest {
 
             int responseBodyLength = Integer.parseInt(contentLength.replaceAll("[^\\d]", ""));
 
-            StringBuilder responseBodySb = new StringBuilder();
 
-            while(responseBodySb.length() < responseBodyLength && (line = in.readLine()) != null) {
-                responseBodySb.append(line);
-                responseBodySb.append("\n");
+            while(responseBodySB.length() < responseBodyLength && (line = in.readLine()) != null) {
+                responseBodySB.append(line);
+                responseBodySB.append("\r\n");
             }
 
+
+            if (statusCode == 302 && this.followRedirect) {
+
+            }
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -214,6 +224,10 @@ class HttpRequest {
             if (socket != null) {
                 socket.close();
             }
+
+            if (sslSocket != null) {
+                sslSocket.close();
+            }
         }
 
 
@@ -223,7 +237,7 @@ class HttpRequest {
     }
 
 
-    private String getHeaderString() {
+    private String getRequestHeader() {
         return this.headersMap.entrySet()
                 .stream()
                 .map(consumer -> { return consumer.getKey() + ": " + consumer.getValue(); })

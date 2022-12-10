@@ -110,8 +110,6 @@ public class HttpRequest {
 
 
         try {
-
-
             if ("HTTPS".equalsIgnoreCase(this.protocol)) {
                 SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
                 sslSocket = (SSLSocket) sslSocketFactory.createSocket(this.host, this.port);
@@ -125,23 +123,24 @@ public class HttpRequest {
                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             }
 
-
             String requestHeader = this.getRequestHeader();
-            StringBuilder requestSb = new StringBuilder();
+            StringBuilder requestPacketSB = new StringBuilder();
 
-            requestSb.append(this.httpMethod + " " + this.url.toString() + " HTTP/1.1");
-            requestSb.append("\r\n");
-            requestSb.append("Host: " + this.host);
-            requestSb.append("\r\n");
-            requestSb.append(requestHeader);
-            requestSb.append("\r\n");
-            requestSb.append("\r\n");
+            System.out.println(this.url.toString() + "   dssadasd");
+
+            requestPacketSB.append(this.httpMethod + " " + this.url.toString() + " HTTP/1.1");
+            requestPacketSB.append("\r\n");
+            requestPacketSB.append("Host: " + this.host);
+            requestPacketSB.append("\r\n");
+            requestPacketSB.append(requestHeader);
+            requestPacketSB.append("\r\n");
+            requestPacketSB.append("\r\n");
 
             if (this.httpMethod != HttpMethod.GET) {
-                requestSb.append(this.body);
+                requestPacketSB.append(this.body);
             }
-            System.out.println(requestSb.toString());
-            out.print(requestSb.toString());
+
+            out.print(requestPacketSB.toString());
             out.flush();
 
             String line = "";
@@ -154,6 +153,8 @@ public class HttpRequest {
                     break;
                 }
             }
+
+            System.out.println(responseHeaderSB.toString());
 
             String[] responseHeaders = responseHeaderSB.toString().split("\r\n");
 
@@ -202,10 +203,15 @@ public class HttpRequest {
                     .filter(element -> { return element.toLowerCase().startsWith("location"); } )
                     .findFirst()
                     .orElseThrow(() -> new Exception("Can not found redirect location") ));
-            String redirectUrl = this.protocol + "://" + this.host + location.split(":")[1].trim();
 
-            System.out.println(location);
-            System.out.println(redirectUrl + "야기로 이동하자!!");
+            String locationValue = location.split("Location: ")[1].trim();
+            String redirectUrl = "";
+
+            if (locationValue.startsWith("http://") || locationValue.startsWith("https://")) {
+                redirectUrl = locationValue;
+            } else {
+                redirectUrl = this.protocol + "://" + this.host.trim() + locationValue;
+            }
 
             return createHttpRequest(redirectUrl)
                     .addHeader("Referer", this.url.toString())
@@ -226,7 +232,4 @@ public class HttpRequest {
                 .sorted()
                 .collect(Collectors.joining("\r\n"));
     }
-
-
-
 }

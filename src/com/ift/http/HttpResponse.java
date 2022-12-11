@@ -1,34 +1,39 @@
 package com.ift.http;
 
 
+import java.util.Arrays;
 import java.util.Map;
 
 public class HttpResponse {
-    private Map<String, String> headersMap;
+    private final String[] responseHeaders;
     public final String responseHeader;
     public final String responseBody;
     public final int statusCode;
 
 
-    static HttpResponse createHttpResponse(int statusCode, String responseHeader, String responseBody) {
-        return new HttpResponse(statusCode, responseHeader, responseBody);
+    protected static HttpResponse createHttpResponse(String responseHeader, String responseBody) {
+        return new HttpResponse(responseHeader, responseBody);
     }
 
-    private HttpResponse(int statusCode, String responseHeader, String responseBody) {
+    private HttpResponse(String responseHeader, String responseBody) {
         this.responseHeader = responseHeader;
         this.responseBody = responseBody;
-        this.statusCode = statusCode;
-
+        this.responseHeaders = this.responseHeader.split("\r\n");
 
         if (!responseHeader.contains("HTTP")) {
             throw new IllegalArgumentException("responseHeader is not http packet");
         }
 
-
+        this.statusCode = Integer.parseInt(responseHeaders[0].split(" ")[1]);
     }
 
-    private void setCookie() {
 
+    public String getHeaderValue(String headerName) {
+        return (Arrays.stream(this.responseHeaders)
+                .filter(element -> { return element.toLowerCase().startsWith(headerName.toLowerCase()); } )
+                .findFirst()
+                .orElse(""));
     }
+
 
 }

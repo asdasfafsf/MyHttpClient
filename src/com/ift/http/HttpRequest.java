@@ -109,6 +109,8 @@ public class HttpRequest {
         int statusCode = 0;
 
 
+        HttpResponse httpResponse = null;
+
         try {
             if ("HTTPS".equalsIgnoreCase(this.protocol)) {
                 SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
@@ -123,7 +125,7 @@ public class HttpRequest {
                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             }
 
-            String requestHeader = this.getRequestHeader();
+            String requestHeader = this.headersMapToString();
             StringBuilder requestPacketSB = new StringBuilder();
 
             System.out.println(this.url.toString() + "   dssadasd");
@@ -166,16 +168,15 @@ public class HttpRequest {
 
             int responseBodyLength = Integer.parseInt(contentLength.replaceAll("[^\\d]", ""));
 
-            System.out.println(responseBodyLength);
-
             while(responseBodySB.length() < responseBodyLength && (line = in.readLine()) != null && !"00000000".equals(line)) {
                 responseBodySB.append(line);
                 responseBodySB.append("\r\n");
             }
 
-            System.out.println(responseBodySB.length());
 
-            statusCode = Integer.parseInt(responseHeaders[0].split(" ")[1]);
+
+
+            httpResponse = HttpResponse.createHttpResponse(responseHeaderSB.toString(), responseBodySB.toString());
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -198,13 +199,9 @@ public class HttpRequest {
         }
 
 
-        if (statusCode == 302 && this.followRedirect) {
-            String location = (Arrays.stream(responseHeaderSB.toString().split("\r\n"))
-                    .filter(element -> { return element.toLowerCase().startsWith("location"); } )
-                    .findFirst()
-                    .orElseThrow(() -> new Exception("Can not found redirect location") ));
-
-            String locationValue = location.split("Location: ")[1].trim();
+        if (httpResponse.statusCode == 302 && this.followRedirect && httpResponse != null) {
+            String location = httpResponse.getHeaderValue("Location");
+            String locationValue = location.split("Location:")[1].trim();
             String redirectUrl = "";
 
             if (locationValue.startsWith("http://") || locationValue.startsWith("https://")) {
@@ -219,13 +216,11 @@ public class HttpRequest {
         }
 
 
-        HttpResponse httpResponse =  HttpResponse.createHttpResponse(statusCode, responseHeaderSB.toString(), responseBodySB.toString());
-
         return httpResponse;
     }
 
 
-    private String getRequestHeader() {
+    private String headersMapToString() {
         return this.headersMap.entrySet()
                 .stream()
                 .map(consumer -> { return consumer.getKey() + ": " + consumer.getValue(); })

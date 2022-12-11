@@ -19,6 +19,7 @@ public class HttpRequest {
     private String protocol;
     private HttpMethod httpMethod;
     private Map<String, String> headersMap;
+    private HttpCookie[] httpCookies;
     private Proxy proxy;
     private boolean followRedirect = true;
 
@@ -34,6 +35,7 @@ public class HttpRequest {
         this.port = this.url.getPort() != -1 ? this.url.getPort() : this.url.getDefaultPort();
         this.protocol = this.url.getProtocol();
         this.host = this.url.getHost();
+        this.httpCookies = new HttpCookie[0];
 
         headersMap = new HashMap<>();
         headersMap.put("Connection", "keep-alive");
@@ -59,6 +61,13 @@ public class HttpRequest {
 
     public HttpRequest setFollowRedirect(boolean followRedirect) {
         this.followRedirect = followRedirect;
+
+        return this;
+    }
+
+
+    public HttpRequest setHttpCookies(HttpCookie[] httpCookies) {
+        this.httpCookies = httpCookies;
 
         return this;
     }
@@ -106,8 +115,6 @@ public class HttpRequest {
 
         StringBuilder responseHeaderSB = new StringBuilder();
         StringBuilder responseBodySB = new StringBuilder();
-        int statusCode = 0;
-
 
         HttpResponse httpResponse = null;
 
@@ -128,7 +135,6 @@ public class HttpRequest {
             String requestHeader = this.headersMapToString();
             StringBuilder requestPacketSB = new StringBuilder();
 
-            System.out.println(this.url.toString() + "   dssadasd");
 
             requestPacketSB.append(this.httpMethod + " " + this.url.toString() + " HTTP/1.1");
             requestPacketSB.append("\r\n");
@@ -136,7 +142,15 @@ public class HttpRequest {
             requestPacketSB.append("\r\n");
             requestPacketSB.append(requestHeader);
             requestPacketSB.append("\r\n");
+
+            for (HttpCookie httpCookie : this.httpCookies) {
+                requestPacketSB.append("Cookie: ");
+                requestPacketSB.append(httpCookie.getKey() + "=" + httpCookie.getValue() + ";");
+            }
             requestPacketSB.append("\r\n");
+            requestPacketSB.append("\r\n");
+
+            System.out.println(requestPacketSB.toString());
 
             if (this.httpMethod != HttpMethod.GET) {
                 requestPacketSB.append(this.body);
@@ -157,9 +171,7 @@ public class HttpRequest {
             }
 
             System.out.println(responseHeaderSB.toString());
-
             String[] responseHeaders = responseHeaderSB.toString().split("\r\n");
-
 
             String contentLength = (Arrays.stream(responseHeaders)
                     .filter(element -> { return element.toLowerCase().startsWith("content-length"); } )
@@ -172,8 +184,6 @@ public class HttpRequest {
                 responseBodySB.append(line);
                 responseBodySB.append("\r\n");
             }
-
-
 
 
             httpResponse = HttpResponse.createHttpResponse(responseHeaderSB.toString(), responseBodySB.toString());
@@ -199,7 +209,7 @@ public class HttpRequest {
         }
 
 
-        if (httpResponse.statusCode == 302 && this.followRedirect && httpResponse != null) {
+        if (httpResponse.statusCode == 302 && this.followRedirect) {
             String location = httpResponse.getHeaderValue("Location");
             String locationValue = location.split("Location:")[1].trim();
             String redirectUrl = "";
@@ -210,8 +220,11 @@ public class HttpRequest {
                 redirectUrl = this.protocol + "://" + this.host.trim() + locationValue;
             }
 
+
             return createHttpRequest(redirectUrl)
                     .addHeader("Referer", this.url.toString())
+                    .setHttpMethod(HttpMethod.GET)
+                    .setHttpCookies(httpResponse.getHttpCookies())
                     .execute();
         }
 

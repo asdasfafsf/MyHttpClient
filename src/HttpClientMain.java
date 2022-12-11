@@ -28,7 +28,7 @@ public class HttpClientMain {
 
         System.out.println(httpResponse.statusCode);
         System.out.println(httpResponse.responseHeader);
-        System.out.println(httpResponse.responseBody);
+//        System.out.println(httpResponse.responseBody);
 
     }
 }

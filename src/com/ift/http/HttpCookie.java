@@ -44,4 +44,10 @@ public class HttpCookie {
         return this.key.hashCode() + this.domain.hashCode();
     }
 
+
+    @Override
+    public String toString() {
+        return this.key + "=" + this.value + ";" + this.domain;
+    }
+
 }

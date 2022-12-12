@@ -28,6 +28,7 @@ public class HttpClientMain {
 
         System.out.println(httpResponse.statusCode);
         System.out.println(httpResponse.responseHeader);
+        System.out.println(httpResponse.getHttpCookies()[0].toString());
 //        System.out.println(httpResponse.responseBody);
 
     }

@@ -187,6 +187,7 @@ public class HttpRequest {
 
 
             httpResponse = HttpResponse.createHttpResponse(responseHeaderSB.toString(), responseBodySB.toString());
+            httpResponse.updateHttpCookies(this.httpCookies);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -209,8 +210,9 @@ public class HttpRequest {
         }
 
 
+
         if (httpResponse.statusCode == 302 && this.followRedirect) {
-            String location = httpResponse.getHeaderValue("Location");
+            String location = httpResponse.getHeader("Location");
             String locationValue = location.split("Location:")[1].trim();
             String redirectUrl = "";
 

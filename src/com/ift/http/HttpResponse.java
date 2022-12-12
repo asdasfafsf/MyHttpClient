@@ -4,6 +4,7 @@ package com.ift.http;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
 
 public class HttpResponse {
@@ -30,11 +31,10 @@ public class HttpResponse {
 
         this.statusCode = Integer.parseInt(responseHeaders[0].split(" ")[1]);
         setHttpCookies();
-        setHttpCookieMap();
     }
 
 
-    public String getHeaderValue(String headerName) {
+    public String getHeader(String headerName) {
         return (Arrays.stream(this.responseHeaders)
                 .filter(element -> { return element.toLowerCase().startsWith(headerName.toLowerCase()); } )
                 .findFirst()
@@ -58,21 +58,14 @@ public class HttpResponse {
                 .toArray(HttpCookie[]::new);
     }
 
-    private void setHttpCookieMap() {
-        this.httpCookieMap = new HashMap<String, HttpCookie>();
 
-        for (HttpCookie httpCookie : this.httpCookies) {
-            httpCookieMap.put(httpCookie.getKey(), httpCookie);
-        }
+    protected void updateHttpCookies(HttpCookie[] httpCookies) {
+        this.httpCookies = Stream.concat(Arrays.stream(httpCookies), Arrays.stream(this.httpCookies))
+                .distinct()
+                .toArray(HttpCookie[]::new);
     }
 
     public HttpCookie[] getHttpCookies() {
         return this.httpCookies;
     }
-
-
-    public HttpCookie getHttpCookie(String key) {
-        return this.httpCookieMap.get(key);
-    }
-
 }

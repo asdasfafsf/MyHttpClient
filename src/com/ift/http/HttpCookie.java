@@ -30,14 +30,18 @@ public class HttpCookie {
 
     @Override
     public boolean equals(Object o) {
-        HttpCookie target = (HttpCookie) o;
+        if (o instanceof HttpCookie) {
+            HttpCookie target = (HttpCookie) o;
 
-        return this.key.equals(target.key) && this.value.equals(target.value) && this.domain.equals(target.domain);
+            return this.key.equals(target.key) && this.domain.equals(target.domain);
+        }
+
+        return false;
     }
 
     @Override
     public int hashCode() {
-        return super.hashCode();
+        return this.key.hashCode() + this.domain.hashCode();
     }
 
 }

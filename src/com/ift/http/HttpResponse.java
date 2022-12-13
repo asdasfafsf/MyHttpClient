@@ -66,6 +66,9 @@ public class HttpResponse {
     }
 
     public HttpCookie[] getHttpCookies() {
-        return this.httpCookies;
+        return Arrays.stream(this.httpCookies)
+                .map(httpCookie -> new HttpCookie(httpCookie.getKey(), httpCookie.getValue(), httpCookie.getDomain()))
+                .toArray(HttpCookie[]::new);
+
     }
 }

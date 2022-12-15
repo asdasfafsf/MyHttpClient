@@ -92,18 +92,14 @@ public class HttpRequest {
         return this;
     }
 
-    public HttpRequest setProxy(Proxy proxy) {
-        this.proxy = proxy;
-
-        return this;
-    }
-
 
     public HttpRequest setProxy(String source, int port) {
         SocketAddress proxyAddress = new InetSocketAddress(source, port);
         Proxy proxy = new Proxy(Proxy.Type.SOCKS, proxyAddress);
 
-        return this.setProxy(proxy);
+        this.proxy = proxy;
+
+        return this;
     }
 
 
